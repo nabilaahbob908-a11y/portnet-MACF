@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PortNet · Module Empreinte Carbone MACF</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="app-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">PN</div>
+      <div class="brand-text">
+        <div class="name">PortNet</div>
+        <div class="sub">Empreinte Carbone · MACF</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Vue d'ensemble</span>
+      <a href="#home" class="nav-item" data-view="home">
+        <span class="icon" data-icon="dashboard"></span> Tableau de bord
+      </a>
+
+      <span class="nav-section-label">Déclaration</span>
+      <a href="#new-calc" class="nav-item" data-view="new-calc">
+        <span class="icon" data-icon="plus"></span> Nouveau calcul
+      </a>
+      <a href="#referentiels" class="nav-item" data-view="referentiels">
+        <span class="icon" data-icon="database"></span> Référentiels unifiés
+      </a>
+      <a href="#calcul" class="nav-item" data-view="calcul">
+        <span class="icon" data-icon="calculator"></span> Calcul carbone
+      </a>
+
+      <span class="nav-section-label">Résultats</span>
+      <a href="#resultats" class="nav-item" data-view="resultats">
+        <span class="icon" data-icon="chart"></span> Résultats &amp; KPI
+      </a>
+      <a href="#rapport" class="nav-item" data-view="rapport">
+        <span class="icon" data-icon="report"></span> Rapport final
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <strong>PFE 2025 – 2026</strong><br>
+      Conception d'un module de calcul de l'empreinte carbone de la chaîne logistique dans le cadre du MACF — Cas de PortNet S.A.
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger" aria-label="Ouvrir le menu"><span class="icon" data-icon="menu"></span></button>
+        <div>
+          <div class="crumb">PortNet <span id="crumb-sep">/</span> <b id="crumb-current">Tableau de bord</b></div>
+          <div class="page-heading" id="page-heading">Tableau de bord</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" aria-label="Recherche"><span class="icon" data-icon="search"></span></button>
+        <button class="icon-btn" aria-label="Notifications"><span class="icon" data-icon="bell"></span><span class="dot"></span></button>
+        <div class="user-chip">
+          <div class="user-avatar">AA</div>
+          <div>
+            <div class="u-name">A. Ahboub</div>
+            <div class="u-role">Chargée MACF · OCP</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="view-wrap">
+
+      <!-- ================= VIEW: HOME ================= -->
+      <section class="view active" id="view-home">
+
+        <div class="hero">
+          <div class="hero-top">
+            <div>
+              <div class="hero-eyebrow"><span class="icon" data-icon="leaf"></span> Module MACF · ISO 14083:2023</div>
+              <h1>Conception d'un module de calcul de l'empreinte carbone de la chaîne logistique dans le cadre du MACF</h1>
+              <p class="lede">Cas d'application PortNet S.A. — un module hybride combinant les exigences du Mécanisme d'Ajustement Carbone aux Frontières et la norme ISO 14083:2023 pour fiabiliser la déclaration carbone des exportateurs marocains.</p>
+            </div>
+            <div class="hero-status">
+              <div class="lbl">Dernier calcul</div>
+              <div class="val"><span class="icon" data-icon="check"></span> Mode réel usine activé</div>
+              <div class="sub">Lot #PN-MACF-2026-00417 · OCP Nutricrops</div>
+            </div>
+          </div>
+
+          <div class="journey" id="journey-svg"></div>
+        </div>
+
+        <div class="kpi-grid" id="home-kpis"></div>
+
+        <div class="section-head">
+          <div>
+            <h2>Accéder au module</h2>
+            <div class="desc">Parcourez les étapes de la déclaration carbone, du référentiel de données jusqu'au rapport final exportable.</div>
+          </div>
+        </div>
+
+        <div class="nav-cards" id="home-nav-cards"></div>
+
+      </section>
+
+      <!-- ================= VIEW: NEW CALCULATION (FORM) ================= -->
+      <section class="view" id="view-new-calc">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow"><span class="icon" data-icon="plus"></span> Nouvelle déclaration</span>
+            <h2 style="margin-top:12px;">Saisie des données du lot exporté</h2>
+            <div class="desc">Renseignez les informations de l'expédition. Les facteurs d'émission sont récupérés automatiquement depuis le référentiel unifié PortNet dès qu'un code SH et un mode de transport sont sélectionnés.</div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <form id="calc-form">
+
+            <div class="form-grid">
+              <div class="field">
+                <label>Entreprise exportatrice <span class="req">*</span></label>
+                <input class="input" type="text" id="f-company" value="OCP Nutricrops S.A.">
+              </div>
+              <div class="field">
+                <label>Produit exporté <span class="req">*</span></label>
+                <select class="select" id="f-product">
+                  <option selected>Engrais azoté — Nitrate d'ammonium</option>
+                  <option>Ciment Portland</option>
+                  <option>Produits laminés (fer &amp; acier)</option>
+                  <option>Aluminium brut</option>
+                  <option>Hydrogène</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Code SH (Système Harmonisé) <span class="req">*</span></label>
+                <input class="input mono" type="text" id="f-hs" value="3102" readonly>
+                <span class="hint">Auto-associé au produit sélectionné — référentiel Module C</span>
+              </div>
+              <div class="field">
+                <label>Facteur d'émission — production <span class="req">*</span></label>
+                <div class="input-group">
+                  <input class="input mono" type="text" id="f-fe-prod" value="2.56" readonly>
+                  <span class="suffix">t CO2e / t</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Pays d'origine <span class="req">*</span></label>
+                <select class="select" id="f-origin">
+                  <option selected>Maroc — Jorf Lasfar</option>
+                  <option>Maroc — Casablanca</option>
+                  <option>Maroc — Tanger Med</option>
+                  <option>Maroc — Safi</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Pays de destination <span class="req">*</span></label>
+                <select class="select" id="f-destination">
+                  <option selected>France — Marseille</option>
+                  <option>Espagne — Algésiras</option>
+                  <option>Pays-Bas — Rotterdam</option>
+                  <option>Allemagne — Hambourg</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label>Mode(s) de transport <span class="req">*</span></label>
+                <div class="chip-toggle-row">
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="routier" checked value="Routier"><span class="box"></span> Routier — Camion 35t</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="maritime" checked value="Maritime"><span class="box"></span> Maritime — Porte-conteneurs</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="ferroviaire" value="Ferroviaire"><span class="box"></span> Ferroviaire</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="aerien" value="Aérien"><span class="box"></span> Aérien</label>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Distance routière — usine → port <span class="req">*</span></label>
+                <div class="input-group">
+                  <input class="input" type="number" id="f-dist-route" value="120">
+                  <span class="suffix">km</span>
+                </div>
+              </div>
+              <div class="field">
+                <label>Distance maritime — port → port Europe <span class="req">*</span></label>
+                <div class="input-group">
+                  <input class="input" type="number" id="f-dist-mer" value="1500">
+                  <span class="suffix">km</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Poids net du lot exporté <span class="req">*</span></label>
+                <div class="input-group">
+                  <input class="input" type="number" id="f-poids" value="60">
+                  <span class="suffix">tonnes</span>
+                </div>
+              </div>
+              <div class="field">
+                <label>Facteur d'émission — transport</label>
+                <div class="input-group">
+                  <input class="input mono" type="text" value="8.5e-5 (route) / 1.5e-5 (mer)" readonly>
+                  <span class="suffix">t CO2e/t.km</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="switch-row" style="margin-top:20px;">
+              <div class="sw-text">
+                <b>Disposez-vous de vos données industrielles réelles ?</b>
+                Active le Module B (facteurs réels usine) au lieu des valeurs par défaut MACF du Module C.
+              </div>
+              <label class="switch"><input type="checkbox" id="f-real-toggle" checked><span class="knob"></span></label>
+            </div>
+
+            <div class="reveal" id="real-data-block" style="margin-top:18px;">
+              <div class="form-grid">
+                <div class="field">
+                  <label>Production annuelle totale de l'usine</label>
+                  <div class="input-group"><input class="input" type="number" id="f-prod-an" value="50000"><span class="suffix">t / an</span></div>
+                </div>
+                <div class="field">
+                  <label>Poids du lot (rappel)</label>
+                  <div class="input-group"><input class="input" type="number" id="f-poids-echo" value="60" readonly><span class="suffix">t</span></div>
+                </div>
+                <div class="field">
+                  <label>Consommation annuelle de gaz naturel</label>
+                  <div class="input-group"><input class="input" type="number" id="f-gaz" value="50000"><span class="suffix">m³ / an</span></div>
+                </div>
+                <div class="field">
+                  <label>Consommation annuelle d'électricité</label>
+                  <div class="input-group"><input class="input" type="number" id="f-elec" value="120000"><span class="suffix">kWh / an</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field full" style="margin-top:20px;">
+              <label>Périmètre de calcul — Scopes à inclure <span class="req">*</span></label>
+              <div class="chip-toggle-row">
+                <label class="chip-toggle"><input type="checkbox" class="scope-check" data-scope="1" checked value="Scope 1"><span class="box"></span> Scope 1 — Émissions directes</label>
+                <label class="chip-toggle"><input type="checkbox" class="scope-check" data-scope="2" checked value="Scope 2"><span class="box"></span> Scope 2 — Énergie indirecte</label>
+                <label class="chip-toggle"><input type="checkbox" class="scope-check" data-scope="3" checked value="Scope 3"><span class="box"></span> Scope 3 — Transport &amp; logistique</label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <div class="left-hint"><span class="icon" data-icon="info"></span> Les champs marqués <span class="req">*</span> sont obligatoires</div>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-outline">Enregistrer le brouillon</button>
+                <button type="submit" class="btn btn-green"><span class="icon" data-icon="calculator"></span> Lancer le calcul</button>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </section>
+
+      <!-- ================= VIEW: REFERENTIELS ================= -->
+      <section class="view" id="view-referentiels">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow"><span class="icon" data-icon="database"></span> Référentiel unifié</span>
+            <h2 style="margin-top:12px;">Données de référence PortNet</h2>
+            <div class="desc">Architecture de référentiel carbone unifié (RCU) — codes SH, modes de transport, facteurs d'émission, valeurs par défaut MACF et distances de référence, avec bascule automatique Module B / Module C.</div>
+          </div>
+        </div>
+
+        <div class="tabs" id="ref-tabs">
+          <button class="tab-btn active" data-tab="tab-hs"><span class="icon" data-icon="flag"></span> Codes SH</button>
+          <button class="tab-btn" data-tab="tab-transport"><span class="icon" data-icon="truck"></span> Modes de transport</button>
+          <button class="tab-btn" data-tab="tab-fe"><span class="icon" data-icon="leaf"></span> Facteurs d'émission</button>
+          <button class="tab-btn" data-tab="tab-default"><span class="icon" data-icon="scale"></span> Valeurs par défaut</button>
+          <button class="tab-btn" data-tab="tab-dist"><span class="icon" data-icon="route"></span> Distances</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-hs"></div>
+        <div class="tab-panel" id="tab-transport"></div>
+        <div class="tab-panel" id="tab-fe"></div>
+        <div class="tab-panel" id="tab-default"></div>
+        <div class="tab-panel" id="tab-dist"></div>
+      </section>
+
+      <!-- ================= VIEW: CALCUL ================= -->
+      <section class="view" id="view-calcul">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow"><span class="icon" data-icon="calculator"></span> Moteur de calcul</span>
+            <h2 style="margin-top:12px;">Processus de calcul de l'empreinte carbone</h2>
+            <div class="desc">Démarche DMADV appliquée au lot #PN-MACF-2026-00417 — détection du mode de données, calcul de fabrication (Scope 1/2), calcul logistique (Scope 3) puis agrégation du bilan MACF.</div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="steps" id="calc-steps"></div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW: RESULTATS ================= -->
+      <section class="view" id="view-resultats">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow"><span class="icon" data-icon="chart"></span> Résultats</span>
+            <h2 style="margin-top:12px;">Bilan carbone du lot exporté</h2>
+            <div class="desc">Synthèse chiffrée des émissions par scope, intensité carbone globale et répartition fabrication / transport pour la déclaration MACF.</div>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="results-kpis"></div>
+
+        <div class="results-grid">
+          <div class="card chart-card">
+            <h3>Répartition des émissions par Scope</h3>
+            <div class="chart-sub">Total du lot — 2.347 t CO2e</div>
+            <div id="donut-chart"></div>
+          </div>
+          <div class="card chart-card">
+            <h3>Fabrication vs. Logistique</h3>
+            <div class="chart-sub">Comparaison des deux sous-ensembles du bilan</div>
+            <div id="scope-breakdown" class="scope-breakdown"></div>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <h3>Émissions logistiques par segment</h3>
+          <div class="chart-sub">Transport routier (usine → port) vs. transport maritime (port → Europe)</div>
+          <div id="bar-chart"></div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW: RAPPORT ================= -->
+      <section class="view" id="view-rapport">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow"><span class="icon" data-icon="report"></span> Document officiel</span>
+            <h2 style="margin-top:12px;">Rapport final de déclaration carbone</h2>
+            <div class="desc">Document de synthèse prêt à être joint à la déclaration MACF de l'exportateur, généré automatiquement à partir du calcul validé.</div>
+          </div>
+        </div>
+
+        <div class="toolbar-row">
+          <button class="btn btn-outline btn-sm" id="btn-share"><span class="icon" data-icon="arrowUpRight"></span> Partager</button>
+          <button class="btn btn-green btn-sm" id="btn-export-pdf"><span class="icon" data-icon="download"></span> Exporter en PDF</button>
+        </div>
+
+        <div class="report-doc" id="report-doc"></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-region"></div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="charts.js"></script>
+<script src="calc-engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
