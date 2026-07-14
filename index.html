@@ -176,10 +176,10 @@
               <div class="field full">
                 <label>Mode(s) de transport <span class="req">*</span></label>
                 <div class="chip-toggle-row">
-                  <label class="chip-toggle"><input type="checkbox" checked value="Routier"><span class="box"></span> Routier — Camion 35t</label>
-                  <label class="chip-toggle"><input type="checkbox" checked value="Maritime"><span class="box"></span> Maritime — Porte-conteneurs</label>
-                  <label class="chip-toggle"><input type="checkbox" value="Ferroviaire"><span class="box"></span> Ferroviaire</label>
-                  <label class="chip-toggle"><input type="checkbox" value="Aérien"><span class="box"></span> Aérien</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="routier" checked value="Routier"><span class="box"></span> Routier — Camion 35t</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="maritime" checked value="Maritime"><span class="box"></span> Maritime — Porte-conteneurs</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="ferroviaire" value="Ferroviaire"><span class="box"></span> Ferroviaire</label>
+                  <label class="chip-toggle"><input type="checkbox" class="transport-check" data-mode="aerien" value="Aérien"><span class="box"></span> Aérien</label>
                 </div>
               </div>
 
@@ -230,7 +230,7 @@
                 </div>
                 <div class="field">
                   <label>Poids du lot (rappel)</label>
-                  <div class="input-group"><input class="input" type="number" value="60" readonly><span class="suffix">t</span></div>
+                  <div class="input-group"><input class="input" type="number" id="f-poids-echo" value="60" readonly><span class="suffix">t</span></div>
                 </div>
                 <div class="field">
                   <label>Consommation annuelle de gaz naturel</label>
@@ -246,9 +246,9 @@
             <div class="field full" style="margin-top:20px;">
               <label>Périmètre de calcul — Scopes à inclure <span class="req">*</span></label>
               <div class="chip-toggle-row">
-                <label class="chip-toggle"><input type="checkbox" checked value="Scope 1"><span class="box"></span> Scope 1 — Émissions directes</label>
-                <label class="chip-toggle"><input type="checkbox" checked value="Scope 2"><span class="box"></span> Scope 2 — Énergie indirecte</label>
-                <label class="chip-toggle"><input type="checkbox" checked value="Scope 3"><span class="box"></span> Scope 3 — Transport &amp; logistique</label>
+                <label class="chip-toggle"><input type="checkbox" class="scope-check" data-scope="1" checked value="Scope 1"><span class="box"></span> Scope 1 — Émissions directes</label>
+                <label class="chip-toggle"><input type="checkbox" class="scope-check" data-scope="2" checked value="Scope 2"><span class="box"></span> Scope 2 — Énergie indirecte</label>
+                <label class="chip-toggle"><input type="checkbox" class="scope-check" data-scope="3" checked value="Scope 3"><span class="box"></span> Scope 3 — Transport &amp; logistique</label>
               </div>
             </div>
 
@@ -363,6 +363,7 @@
 <script src="data.js"></script>
 <script src="icons.js"></script>
 <script src="charts.js"></script>
+<script src="calc-engine.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

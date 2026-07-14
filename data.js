@@ -1,63 +1,31 @@
 /* =========================================================================
    PortNet – Module Empreinte Carbone MACF
-   data.js — Jeu de données d'exemple (dérivé du prototype Excel fourni)
+   data.js — Référentiel unifié (données de référence) et constantes.
+   IMPORTANT : ce fichier ne contient plus aucun résultat de calcul.
+   Tous les indicateurs (Scope 1/2/3, bilan, intensité, rapport) sont
+   recalculés dynamiquement par calc-engine.js à partir des valeurs
+   saisies dans le formulaire — voir app.js / calc-engine.js.
    ========================================================================= */
 
 const DEMO = {
+  // Métadonnées d'affichage (utilisateur, référence document) — non liées au calcul
   meta: {
-    entreprise: "OCP Nutricrops S.A.",
-    site: "Complexe Industriel Jorf Lasfar",
     utilisateur: "A. Ahboub — Chargée MACF",
-    dateCalcul: "12 juillet 2026",
     reference: "PN-MACF-2026-00417",
   },
 
-  // Formulaire de saisie
-  input: {
-    company: "OCP Nutricrops S.A.",
-    product: "Engrais azoté — Nitrate d'ammonium",
-    hsCode: "3102",
-    origin: "Maroc — Jorf Lasfar",
-    destination: "France — Marseille",
-    transportModes: ["Routier", "Maritime"],
-    distanceRoute: 120,     // km, usine -> port
-    distanceMer: 1500,      // km, port -> port Europe
-    poidsLot: 60,           // tonnes
-    productionAnnuelle: 50000, // tonnes/an
-    consoGaz: 50000,        // m3/an
-    consoElec: 120000,      // kWh/an
-    hasRealData: true,      // mode réel usine vs valeurs par défaut
-    scopes: ["Scope 1", "Scope 2", "Scope 3"],
-  },
-
-  // Facteurs d'émission (référentiel unifié)
+  // Facteurs d'émission de référence (constantes utilisées par le moteur de calcul)
   facteurs: {
-    gazNaturel: { valeur: 2.04, unite: "kg CO2e / m3", scope: "Scope 1", source: "Coefficient officiel" },
-    electriciteONEE: { valeur: 0.672, unite: "kg CO2e / kWh", scope: "Scope 2", source: "Mix électrique moyen Maroc" },
-    fioulLourd: { valeur: 3.19, unite: "kg CO2e / kg", scope: "Scope 1", source: "Mode réel" },
-    transportRoutier: { valeur: 0.000085, unite: "t CO2e / t.km", scope: "Scope 3", source: "ISO 14083 — Camion 35t" },
-    transportMaritime: { valeur: 0.000015, unite: "t CO2e / t.km", scope: "Scope 3", source: "ISO 14083 — Porte-conteneurs" },
+    gazNaturel:      { valeur: 2.04,      unite: "kg CO2e / m3",   scope: "Scope 1", source: "Coefficient officiel" },
+    electriciteONEE: { valeur: 0.672,     unite: "kg CO2e / kWh",  scope: "Scope 2", source: "Mix électrique moyen Maroc" },
+    fioulLourd:      { valeur: 3.19,      unite: "kg CO2e / kg",   scope: "Scope 1", source: "Mode réel" },
+    transportRoutier:{ valeur: 0.000085,  unite: "t CO2e / t.km",  scope: "Scope 3", source: "ISO 14083 — Camion 35t" },
+    transportMaritime:{ valeur: 0.000015, unite: "t CO2e / t.km",  scope: "Scope 3", source: "ISO 14083 — Porte-conteneurs" },
   },
 
   coefficientsDetour: {
     route: 1.10,
     mer: 1.15,
-  },
-
-  // Résultat du calcul (mode réel usine — cohérent avec la feuille "Calcul et Bilan final")
-  resultats: {
-    modeDetecte: "MODE RÉEL USINE ACTIVÉ",
-    poidsLot: 60,
-    scope1: 0.1224,
-    scope2: 0.09677,
-    sousTotalFabrication: 0.219168,
-    intensiteFabrication: 0.0036528,
-    scope3Route: 0.6426,
-    scope3Mer: 1.485,
-    sousTotalLogistique: 2.1276,
-    intensiteTransport: 0.03546,
-    bilanGlobal: 2.346768,
-    intensiteGlobale: 0.039113,
   },
 
   // Référentiel HS Codes / Modules MACF
@@ -101,17 +69,12 @@ const DEMO = {
     { origine: "Usine (Nador)", destination: "Port de Nador", mode: "Routier", distance: 45 },
   ],
 
-  // Rapport final — synthèse
-  rapport: {
-    produit: "Engrais azoté — Nitrate d'ammonium",
-    hsCode: "3102",
-    masse: "60 tonnes",
-    destination: "Marseille, France",
-    emissionsFabrication: "0.219 tCO2e (données industrielles déclarées)",
-    emissionsTransport: "2.128 tCO2e",
-    empreinteTotale: "2.347 tCO2e",
-    intensiteCarbone: "0.0391 tCO2e / t produit",
-    methode: "Données réelles usine (Module B) — Mode réel activé",
-    statut: "Déclaration validée — données industrielles fournies",
+  // Association Produit -> Code SH -> Facteur d'émission de production par défaut (Module C)
+  productMap: {
+    "Engrais azoté — Nitrate d'ammonium": { hs: "3102", fe: 2.56 },
+    "Ciment Portland":                     { hs: "2523", fe: 1.49 },
+    "Produits laminés (fer & acier)":      { hs: "7208", fe: 1.894 },
+    "Aluminium brut":                      { hs: "7601", fe: 0.396 },
+    "Hydrogène":                           { hs: "2804", fe: 11.92 },
   },
 };

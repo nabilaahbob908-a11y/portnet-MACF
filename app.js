@@ -1,6 +1,11 @@
 /* =========================================================================
    PortNet – Module Empreinte Carbone MACF
-   app.js — Routage, rendu dynamique, interactions
+   app.js — Routage, rendu dynamique, interactions, moteur de calcul relié.
+
+   L'ensemble des indicateurs affichés (KPI, graphiques, étapes de calcul,
+   rapport final) est dérivé de APP_STATE, recalculé à chaque soumission
+   du formulaire via CalcEngine.compute(). Aucune valeur de résultat n'est
+   codée en dur dans le rendu : tout provient de APP_STATE.results.
    ========================================================================= */
 
 (function () {
@@ -13,6 +18,14 @@
     "calcul": "Calcul carbone",
     "resultats": "Résultats & KPI",
     "rapport": "Rapport final",
+  };
+
+  // ---------------------------------------------------------------------
+  // ÉTAT DE L'APPLICATION — source unique de vérité
+  // ---------------------------------------------------------------------
+  const APP_STATE = {
+    input: null,    // valeurs actuellement lues du formulaire
+    results: null,  // sortie de CalcEngine.compute(input)
   };
 
   /* ---------------------------------------------------------------------
@@ -71,23 +84,89 @@
   }
 
   /* ---------------------------------------------------------------------
-     HOME: hero journey signature diagram
+     LECTURE DU FORMULAIRE -> objet input pour CalcEngine
+  --------------------------------------------------------------------- */
+  function readFormInput() {
+    const val = id => document.getElementById(id).value;
+    const checked = id => document.getElementById(id).checked;
+
+    const transportModes = { routier: false, maritime: false, ferroviaire: false, aerien: false };
+    document.querySelectorAll(".transport-check").forEach(cb => {
+      transportModes[cb.dataset.mode] = cb.checked;
+    });
+
+    const scopesIncluded = { s1: true, s2: true, s3: true };
+    document.querySelectorAll(".scope-check").forEach(cb => {
+      scopesIncluded["s" + cb.dataset.scope] = cb.checked;
+    });
+
+    return {
+      company: val("f-company"),
+      product: val("f-product"),
+      hsCode: val("f-hs"),
+      origin: val("f-origin"),
+      destination: val("f-destination"),
+      transportModes,
+      distanceRoute: val("f-dist-route"),
+      distanceMer: val("f-dist-mer"),
+      poids: val("f-poids"),
+      isReal: checked("f-real-toggle"),
+      prodAnnuelle: val("f-prod-an"),
+      consoGaz: val("f-gaz"),
+      consoElec: val("f-elec"),
+      feProdDefault: val("f-fe-prod"),
+      scopesIncluded,
+    };
+  }
+
+  /* ---------------------------------------------------------------------
+     RECALCUL COMPLET — appelé au clic "Lancer le calcul" et au chargement
+  --------------------------------------------------------------------- */
+  function recalculate(opts = {}) {
+    const input = readFormInput();
+    const results = CalcEngine.compute(input);
+    APP_STATE.input = input;
+    APP_STATE.results = results;
+
+    renderJourney();
+    renderHomeKPIs();
+    renderCalcSteps();
+    renderResultats();
+    renderRapport();
+
+    // synchronise le champ "rappel" du poids dans le bloc données réelles
+    const echo = document.getElementById("f-poids-echo");
+    if (echo) echo.value = input.poids;
+
+    if (opts.toast) {
+      toast(`Calcul recalculé — bilan global : ${round(results.bilanGlobal,4)} t CO2e`, "check");
+    }
+  }
+
+  function round(v, d) {
+    const f = Math.pow(10, d);
+    return Math.round(v * f) / f;
+  }
+
+  /* ---------------------------------------------------------------------
+     HOME: hero journey signature diagram (dynamique)
   --------------------------------------------------------------------- */
   function renderJourney() {
+    const i = APP_STATE.input, r = APP_STATE.results;
     const stages = [
-      { icon: ICONS.factory, label: "Usine", sub: "Jorf Lasfar", emis: "0.22 t" },
-      { icon: ICONS.truck,   label: "Route", sub: DEMO.input.distanceRoute + " km", emis: "0.64 t" },
-      { icon: ICONS.ship,    label: "Port → Mer", sub: DEMO.input.distanceMer + " km", emis: "1.49 t" },
-      { icon: ICONS.flag,    label: "Frontière UE", sub: "Marseille", emis: "MACF" },
+      { icon: ICONS.factory, label: "Usine", sub: shortOrigin(i.origin), emis: round(r.sousTotalFabrication,3) + " t" },
+      { icon: ICONS.truck,   label: "Route", sub: (i.transportModes.routier ? i.distanceRoute : 0) + " km", emis: round(r.scope3Route,3) + " t" },
+      { icon: ICONS.ship,    label: "Port → Mer", sub: (i.transportModes.maritime ? i.distanceMer : 0) + " km", emis: round(r.scope3Mer,3) + " t" },
+      { icon: ICONS.flag,    label: "Frontière UE", sub: shortDest(i.destination), emis: "MACF" },
     ];
     const W = 1040, H = 148, n = stages.length;
     const stepX = (W - 120) / (n - 1);
     let nodes = "", path = "";
-    stages.forEach((s, i) => {
-      const x = 60 + i * stepX;
+    stages.forEach((s, idx) => {
+      const x = 60 + idx * stepX;
       const y = 58;
-      if (i > 0) {
-        const px = 60 + (i - 1) * stepX;
+      if (idx > 0) {
+        const px = 60 + (idx - 1) * stepX;
         path += `<line x1="${px + 26}" y1="${y}" x2="${x - 26}" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2" stroke-dasharray="1 8" stroke-linecap="round"/>`;
       }
       nodes += `
@@ -105,19 +184,28 @@
     document.getElementById("journey-svg").innerHTML = svg;
   }
 
+  function shortOrigin(o) { return (o || "").split("—").pop().trim(); }
+  function shortDest(d) { return (d || "").split("—").pop().trim(); }
+
   /* ---------------------------------------------------------------------
-     HOME: KPI cards
+     HOME: KPI cards (dynamique)
   --------------------------------------------------------------------- */
   function renderHomeKPIs() {
-    const r = DEMO.resultats;
+    const r = APP_STATE.results, i = APP_STATE.input;
     const items = [
-      { icon: "cloud", cls: "navy", lbl: "Bilan global du lot", val: r.bilanGlobal.toFixed(3) + " t", trend: null },
-      { icon: "leaf", cls: "green", lbl: "Intensité carbone globale", val: r.intensiteGlobale.toFixed(4) + " t/t", trend: "−52% vs défaut" },
-      { icon: "scale", cls: "blue", lbl: "Poids du lot traité", val: DEMO.input.poidsLot + " t", trend: null },
-      { icon: "check", cls: "amber", lbl: "Mode de données", val: "Réel usine", trend: "Module B" },
+      { icon: "cloud", cls: "navy", lbl: "Bilan global du lot", val: round(r.bilanGlobal,3) + " t" },
+      { icon: "leaf", cls: "green", lbl: "Intensité carbone globale", val: round(r.intensiteGlobale,4) + " t/t" },
+      { icon: "scale", cls: "blue", lbl: "Poids du lot traité", val: i.poids + " t" },
+      { icon: "check", cls: "amber", lbl: "Mode de données", val: r.isReal ? "Réel usine" : "Valeurs défaut", trend: r.isReal ? "Module B" : "Module C" },
     ];
     document.getElementById("home-kpis").innerHTML = items.map(kpiCard).join("");
     hydrateIcons(document.getElementById("home-kpis"));
+
+    document.querySelector(".hero-status .val").innerHTML =
+      `<span class="icon" data-icon="check"></span> ${r.mode === "MODE RÉEL USINE ACTIVÉ" ? "Mode réel usine activé" : "Mode valeurs par défaut"}`;
+    document.querySelector(".hero-status .sub").textContent =
+      `Lot #${DEMO.meta.reference} · ${i.company}`;
+    hydrateIcons(document.querySelector(".hero-status"));
   }
 
   function kpiCard(k) {
@@ -133,7 +221,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     HOME: navigation cards
+     HOME: navigation cards (statique — ce sont des liens, pas des résultats)
   --------------------------------------------------------------------- */
   function renderNavCards() {
     const cards = [
@@ -157,7 +245,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     REFERENTIELS: tables
+     REFERENTIELS: tables (données de référence statiques — pas des résultats)
   --------------------------------------------------------------------- */
   function renderReferentiels() {
     document.getElementById("tab-hs").innerHTML = tableWrap(
@@ -253,55 +341,10 @@
   };
 
   /* ---------------------------------------------------------------------
-     CALCUL: process steps
+     CALCUL: process steps (dynamique — généré par CalcEngine.buildSteps)
   --------------------------------------------------------------------- */
   function renderCalcSteps() {
-    const r = DEMO.resultats, i = DEMO.input;
-    const steps = [
-      {
-        title: "Détection du mode de données",
-        desc: "PortNet vérifie si l'exportateur a fourni ses données industrielles réelles (Module B) ou si les valeurs par défaut MACF (Module C) doivent être appliquées.",
-        formula: `SI données_réelles = OUI  →  Module B (facteurs réels usine)\nSINON                     →  Module C (valeurs par défaut MACF)`,
-        result: "MODE RÉEL USINE ACTIVÉ",
-      },
-      {
-        title: "Calcul de fabrication — Scope 1 (Gaz naturel)",
-        desc: "Émissions directes liées à la combustion de gaz naturel, allouées au lot au prorata de la production annuelle.",
-        formula: `Scope 1 = (Conso. Gaz annuelle × FE Gaz) / (1000 × Production annuelle) × Poids du lot\n        = (${i.consoGaz} × 2.04) / (1000 × ${i.productionAnnuelle}) × ${i.poidsLot}`,
-        result: r.scope1.toFixed(4) + " t CO2e",
-      },
-      {
-        title: "Calcul de fabrication — Scope 2 (Électricité)",
-        desc: "Émissions indirectes liées à la consommation électrique du site (mix ONEE), allouées au lot exporté.",
-        formula: `Scope 2 = (Conso. Élec annuelle × FE Élec) / (1000 × Production annuelle) × Poids du lot\n        = (${i.consoElec} × 0.672) / (1000 × ${i.productionAnnuelle}) × ${i.poidsLot}`,
-        result: r.scope2.toFixed(4) + " t CO2e",
-      },
-      {
-        title: "Sous-total Fabrication",
-        desc: "Somme des émissions directes et indirectes de production, converties en intensité carbone de fabrication.",
-        formula: `Sous-total = Scope 1 + Scope 2\nIntensité fabrication = Sous-total / Poids du lot`,
-        result: r.sousTotalFabrication.toFixed(4) + " t CO2e  ·  " + r.intensiteFabrication.toFixed(4) + " t/t",
-      },
-      {
-        title: "Calcul logistique — Scope 3 (Transport routier)",
-        desc: "Émissions du trajet usine → port, norme ISO 14083, avec coefficient de détour appliqué.",
-        formula: `Scope 3 route = Poids du lot × Distance route × FE routier × Coeff. détour\n             = ${i.poidsLot} × ${i.distanceRoute} × 0.000085 × 1.10`,
-        result: r.scope3Route.toFixed(4) + " t CO2e",
-      },
-      {
-        title: "Calcul logistique — Scope 3 (Transport maritime)",
-        desc: "Émissions du trajet port → port Europe, norme ISO 14083, avec coefficient de détour maritime.",
-        formula: `Scope 3 mer = Poids du lot × Distance mer × FE maritime × Coeff. détour\n           = ${i.poidsLot} × ${i.distanceMer} × 0.000015 × 1.15`,
-        result: r.scope3Mer.toFixed(4) + " t CO2e",
-      },
-      {
-        title: "Agrégation du bilan MACF",
-        desc: "Somme de la fabrication et de la logistique pour obtenir le bilan global du lot et son intensité carbone finale.",
-        formula: `Bilan global = Sous-total Fabrication + Sous-total Logistique\nIntensité globale = Bilan global / Poids du lot`,
-        result: r.bilanGlobal.toFixed(4) + " t CO2e  ·  " + r.intensiteGlobale.toFixed(4) + " t/t",
-        final: true,
-      },
-    ];
+    const steps = CalcEngine.buildSteps(APP_STATE.input, APP_STATE.results);
 
     document.getElementById("calc-steps").innerHTML = steps.map((s, idx) => `
       <div class="step-card">
@@ -326,19 +369,22 @@
   }
 
   /* ---------------------------------------------------------------------
-     RESULTATS
+     RESULTATS (dynamique)
   --------------------------------------------------------------------- */
   function renderResultats() {
-    const r = DEMO.resultats;
+    const r = APP_STATE.results;
 
     const kpis = [
-      { icon: "cloud", cls: "navy", lbl: "Total CO₂e émis", val: r.bilanGlobal.toFixed(3) + " t" },
-      { icon: "leaf", cls: "green", lbl: "Intensité carbone", val: r.intensiteGlobale.toFixed(4) + " t/t" },
-      { icon: "factory", cls: "blue", lbl: "Scope 1 — Direct", val: r.scope1.toFixed(4) + " t" },
-      { icon: "scale", cls: "amber", lbl: "Scope 2 — Énergie", val: r.scope2.toFixed(4) + " t" },
+      { icon: "cloud", cls: "navy", lbl: "Total CO₂e émis", val: round(r.bilanGlobal,3) + " t" },
+      { icon: "leaf", cls: "green", lbl: "Intensité carbone", val: round(r.intensiteGlobale,4) + " t/t" },
+      { icon: "factory", cls: "blue", lbl: "Scope 1 — Direct", val: round(r.scope1,4) + " t" },
+      { icon: "scale", cls: "amber", lbl: "Scope 2 — Énergie", val: round(r.scope2,4) + " t" },
     ];
     document.getElementById("results-kpis").innerHTML = kpis.map(kpiCard).join("");
     hydrateIcons(document.getElementById("results-kpis"));
+
+    document.querySelector("#view-resultats .chart-sub").textContent =
+      `Total du lot — ${round(r.bilanGlobal,3)} t CO2e`;
 
     renderDonut(document.getElementById("donut-chart"), [
       { label: "Scope 1 — Gaz naturel", value: r.scope1, color: "#0B3D5C" },
@@ -346,49 +392,53 @@
       { label: "Scope 3 — Transport", value: r.sousTotalLogistique, color: "#1CB37F" },
     ]);
 
-    const total = r.bilanGlobal;
+    const total = r.bilanGlobal || 1;
     const fab = r.sousTotalFabrication, log = r.sousTotalLogistique;
     document.getElementById("scope-breakdown").innerHTML = `
       <div class="scope-row">
         <div class="sc-icon kpi-icon navy" data-icon="factory"></div>
         <div class="sc-body">
-          <div class="sc-top"><span>Fabrication (Scope 1+2)</span><span class="mono">${fab.toFixed(4)} t</span></div>
+          <div class="sc-top"><span>Fabrication (Scope 1+2)</span><span class="mono">${round(fab,4)} t</span></div>
           <div class="sc-bar-track"><div class="sc-bar-fill" style="width:${(fab/total*100).toFixed(1)}%; background:#0B3D5C;"></div></div>
         </div>
       </div>
       <div class="scope-row">
         <div class="sc-icon kpi-icon green" data-icon="ship"></div>
         <div class="sc-body">
-          <div class="sc-top"><span>Logistique (Scope 3)</span><span class="mono">${log.toFixed(4)} t</span></div>
+          <div class="sc-top"><span>Logistique (Scope 3)</span><span class="mono">${round(log,4)} t</span></div>
           <div class="sc-bar-track"><div class="sc-bar-fill" style="width:${(log/total*100).toFixed(1)}%; background:#1CB37F;"></div></div>
         </div>
       </div>
       <div style="margin-top:6px; padding-top:14px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate); font-weight:700;">
-        <span>Intensité fabrication</span><span class="mono" style="color:var(--navy-deep);">${r.intensiteFabrication.toFixed(4)} t/t</span>
+        <span>Intensité fabrication</span><span class="mono" style="color:var(--navy-deep);">${round(r.intensiteFabrication,4)} t/t</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate); font-weight:700;">
-        <span>Intensité transport</span><span class="mono" style="color:var(--navy-deep);">${r.intensiteTransport.toFixed(4)} t/t</span>
+        <span>Intensité transport</span><span class="mono" style="color:var(--navy-deep);">${round(r.intensiteTransport,4)} t/t</span>
       </div>`;
     hydrateIcons(document.getElementById("scope-breakdown"));
 
+    const i = APP_STATE.input;
     renderBarChart(document.getElementById("bar-chart"), [
-      { label: "Transport routier — usine → port (120 km)", value: r.scope3Route, color: "#1568A8" },
-      { label: "Transport maritime — port → Europe (1500 km)", value: r.scope3Mer, color: "#14976B" },
+      { label: `Transport routier — usine → port (${i.transportModes.routier ? i.distanceRoute : 0} km)`, value: r.scope3Route, color: "#1568A8" },
+      { label: `Transport maritime — port → Europe (${i.transportModes.maritime ? i.distanceMer : 0} km)`, value: r.scope3Mer, color: "#14976B" },
     ]);
   }
 
   /* ---------------------------------------------------------------------
-     RAPPORT
+     RAPPORT (entièrement dynamique)
   --------------------------------------------------------------------- */
   function renderRapport() {
-    const rp = DEMO.rapport, r = DEMO.resultats, m = DEMO.meta;
+    const r = APP_STATE.results, i = APP_STATE.input, m = DEMO.meta;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
     document.getElementById("report-doc").innerHTML = `
       <div class="report-header">
         <div>
           <div class="rh-title">Rapport de déclaration carbone — Conformité MACF</div>
           <div class="rh-meta">
             Référence : ${m.reference}<br>
-            Généré le ${m.dateCalcul} par ${m.utilisateur}
+            Généré le ${dateStr} par ${m.utilisateur}
           </div>
         </div>
         <div class="rh-logo">
@@ -401,10 +451,10 @@
         <div class="report-section">
           <h3>Résumé</h3>
           <p class="report-summary">
-            Le lot exporté par <b>${m.entreprise}</b> (${rp.produit}, code SH <b>${rp.hsCode}</b>), d'une masse nette de
-            <b>${rp.masse}</b> à destination de <b>${rp.destination}</b>, présente une empreinte carbone totale de
-            <b>${rp.empreinteTotale}</b>, calculée selon la méthode « ${rp.methode} » conformément au Règlement UE 2023/956
-            et à la norme ISO 14083:2023.
+            Le lot exporté par <b>${i.company}</b> (${i.product}, code SH <b>${i.hsCode}</b>), d'une masse nette de
+            <b>${i.poids} tonnes</b> à destination de <b>${i.destination}</b>, présente une empreinte carbone totale de
+            <b>${round(r.bilanGlobal,4)} t CO2e</b>, calculée selon la méthode « ${r.mode === "MODE RÉEL USINE ACTIVÉ" ? "Données réelles usine (Module B)" : "Valeurs par défaut MACF (Module C)"} »
+            conformément au Règlement UE 2023/956 et à la norme ISO 14083:2023.
           </p>
         </div>
 
@@ -413,11 +463,11 @@
           <div class="table-wrap">
             <table class="data-table">
               <tbody>
-                <tr><td>Émissions de fabrication (Scope 1+2)</td><td class="mono">${rp.emissionsFabrication}</td></tr>
-                <tr><td>Émissions de transport (Scope 3)</td><td class="mono">${rp.emissionsTransport}</td></tr>
-                <tr><td>Empreinte carbone totale du lot</td><td class="mono">${rp.empreinteTotale}</td></tr>
-                <tr><td>Intensité carbone (MACF)</td><td class="mono">${rp.intensiteCarbone}</td></tr>
-                <tr><td>Méthode utilisée</td><td>${rp.methode}</td></tr>
+                <tr><td>Émissions de fabrication (Scope 1+2)</td><td class="mono">${round(r.sousTotalFabrication,4)} t CO2e</td></tr>
+                <tr><td>Émissions de transport (Scope 3)</td><td class="mono">${round(r.sousTotalLogistique,4)} t CO2e</td></tr>
+                <tr><td>Empreinte carbone totale du lot</td><td class="mono">${round(r.bilanGlobal,4)} t CO2e</td></tr>
+                <tr><td>Intensité carbone (MACF)</td><td class="mono">${round(r.intensiteGlobale,4)} t CO2e / t produit</td></tr>
+                <tr><td>Méthode utilisée</td><td>${r.mode === "MODE RÉEL USINE ACTIVÉ" ? "Données réelles usine (Module B)" : "Valeurs par défaut MACF (Module C)"}</td></tr>
               </tbody>
             </table>
           </div>
@@ -426,21 +476,21 @@
         <div class="report-section">
           <h3>Indicateurs clés</h3>
           <div class="indicator-grid">
-            <div class="indicator-cell"><div class="ic-lbl">Scope 1</div><div class="ic-val">${r.scope1.toFixed(3)} t</div></div>
-            <div class="indicator-cell"><div class="ic-lbl">Scope 2</div><div class="ic-val">${r.scope2.toFixed(3)} t</div></div>
-            <div class="indicator-cell"><div class="ic-lbl">Scope 3</div><div class="ic-val">${r.sousTotalLogistique.toFixed(3)} t</div></div>
-            <div class="indicator-cell"><div class="ic-lbl">Intensité globale</div><div class="ic-val">${r.intensiteGlobale.toFixed(4)} t/t</div></div>
+            <div class="indicator-cell"><div class="ic-lbl">Scope 1</div><div class="ic-val">${round(r.scope1,3)} t</div></div>
+            <div class="indicator-cell"><div class="ic-lbl">Scope 2</div><div class="ic-val">${round(r.scope2,3)} t</div></div>
+            <div class="indicator-cell"><div class="ic-lbl">Scope 3</div><div class="ic-val">${round(r.sousTotalLogistique,3)} t</div></div>
+            <div class="indicator-cell"><div class="ic-lbl">Intensité globale</div><div class="ic-val">${round(r.intensiteGlobale,4)} t/t</div></div>
           </div>
         </div>
 
         <div class="report-section">
           <h3>Statut de la déclaration</h3>
-          <span class="status-pill"><span class="icon" data-icon="check"></span> ${rp.statut}</span>
+          <span class="status-pill"><span class="icon" data-icon="check"></span> ${r.isReal ? "Déclaration validée — données industrielles fournies" : "Déclaration estimée — valeurs par défaut MACF appliquées"}</span>
         </div>
       </div>
 
       <div class="report-footer">
-        <span class="rf-note">Document généré automatiquement par PortNet — prototype d'interface, données d'exemple à des fins de démonstration académique (PFE).</span>
+        <span class="rf-note">Document généré automatiquement par PortNet — prototype d'interface, à des fins de démonstration académique (PFE).</span>
         <span class="rf-note">Page 1/1</span>
       </div>`;
     hydrateIcons(document.getElementById("report-doc"));
@@ -461,25 +511,25 @@
 
     document.getElementById("calc-form").addEventListener("submit", e => {
       e.preventDefault();
+      recalculate({ toast: false });
       toast("Calcul lancé avec succès — redirection vers le moteur de calcul…", "check");
       setTimeout(() => { location.hash = "#calcul"; }, 700);
     });
 
-    // Product -> HS code auto mapping (demo)
-    const productMap = {
-      "Engrais azoté — Nitrate d'ammonium": { hs: "3102", fe: "2.56" },
-      "Ciment Portland": { hs: "2523", fe: "1.49" },
-      "Produits laminés (fer & acier)": { hs: "7208", fe: "1.894" },
-      "Aluminium brut": { hs: "7601", fe: "0.396" },
-      "Hydrogène": { hs: "2804", fe: "11.92" },
-    };
+    // Produit -> Code SH + Facteur d'émission par défaut (référentiel unifié)
     document.getElementById("f-product").addEventListener("change", e => {
-      const m = productMap[e.target.value];
+      const m = DEMO.productMap[e.target.value];
       if (m) {
         document.getElementById("f-hs").value = m.hs;
         document.getElementById("f-fe-prod").value = m.fe;
         toast("Facteurs d'émission mis à jour depuis le référentiel", "database");
       }
+    });
+
+    // Synchronise le champ "rappel" du poids en temps réel
+    document.getElementById("f-poids").addEventListener("input", e => {
+      const echo = document.getElementById("f-poids-echo");
+      if (echo) echo.value = e.target.value;
     });
   }
 
@@ -531,18 +581,17 @@
   --------------------------------------------------------------------- */
   document.addEventListener("DOMContentLoaded", () => {
     hydrateIcons();
-    renderJourney();
-    renderHomeKPIs();
     renderNavCards();
     renderReferentiels();
-    renderCalcSteps();
-    renderResultats();
-    renderRapport();
 
     initForm();
     initTabs();
     initSidebarToggle();
     initReportActions();
+
+    // Premier calcul à partir des valeurs par défaut du formulaire —
+    // aucun résultat n'est pré-calculé/codé en dur, tout part d'ici.
+    recalculate({ toast: false });
 
     window.addEventListener("hashchange", handleHash);
     handleHash();
